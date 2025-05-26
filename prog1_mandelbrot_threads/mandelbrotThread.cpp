@@ -12,6 +12,7 @@ typedef struct {
     int* output;
     int threadId;
     int numThreads;
+    double time;
 } WorkerArgs;
 
 
@@ -35,6 +36,18 @@ void workerThreadStart(WorkerArgs * const args) {
     // program that uses two threads, thread 0 could compute the top
     // half of the image and thread 1 could compute the bottom half.
 
+
+    // Get job partition by job id
+    double startTime = CycleTimer::currentSeconds();
+    int numRows = args->height / args->numThreads + 1;
+    if (args->threadId == args->numThreads - 1) {
+        numRows = args->height % numRows;
+    }
+    int startRow = args->threadId * (args->height / args->numThreads + 1);
+    // Do job
+    mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow, numRows, args->maxIterations, args->output);
+    double endTime = CycleTimer::currentSeconds();
+    args->time = endTime - startTime;
     printf("Hello world from thread %d\n", args->threadId);
 }
 
@@ -92,5 +105,9 @@ void mandelbrotThread(
     for (int i=1; i<numThreads; i++) {
         workers[i].join();
     }
+    for (int i=0; i<numThreads; ++i){
+        printf("%lf ", args[i].time);
+    }
+    printf("\n");
 }
 
