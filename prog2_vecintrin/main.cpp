@@ -249,7 +249,40 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   // Your solution should work for any value of
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
   //
-  
+  __cs149_mask maskAll = _cs149_init_ones();
+  for (int i=0; i<N; i+=VECTOR_WIDTH) {
+    __cs149_vec_float x, result;
+    __cs149_vec_int y, zero, one;
+    __cs149_mask maskIsZeroExp, maskIsNotZeroExp; 
+    
+    zero = _cs149_vset_int(0);
+    one = _cs149_vset_int(1);
+    _cs149_vload_float(x, values+i, maskAll);  
+    _cs149_vload_int(y, exponents+i, maskAll);  
+
+    _cs149_veq_int(maskIsZeroExp, y, zero, maskAll);
+    maskIsNotZeroExp = _cs149_mask_not(maskIsZeroExp); 
+    result = _cs149_vset_float(1.0f);
+    _cs149_vmove_float(result, x, maskIsNotZeroExp);
+
+
+    _cs149_vsub_int(y, y, one, maskIsNotZeroExp);
+    _cs149_veq_int(maskIsZeroExp, y, zero, maskIsNotZeroExp);
+    maskIsNotZeroExp = _cs149_mask_not(maskIsZeroExp); 
+    while(_cs149_cntbits(maskIsNotZeroExp)){
+      _cs149_vmult_float(result, result, x, maskIsNotZeroExp);
+      _cs149_vsub_int(y, y, one, maskIsNotZeroExp);
+      _cs149_veq_int(maskIsZeroExp, y, zero, maskIsNotZeroExp);
+      maskIsNotZeroExp = _cs149_mask_not(maskIsZeroExp); 
+    }
+    
+    __cs149_mask maskIsOverflow;
+    auto bar_vec = _cs149_vset_float(9.999999f);
+    _cs149_vgt_float(maskIsOverflow, result, bar_vec, maskAll);
+    _cs149_vset_float(result, 9.999999f, maskIsOverflow);
+    _cs149_vstore_float(output+i, result, maskAll);
+  }
+
 }
 
 // returns the sum of all elements in values
